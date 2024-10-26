@@ -110,6 +110,31 @@ private:
 public:
 
 };
+vector<string> load_file()
+{ 
+    string name;
+    cout << "Enter file name: " << endl; 
+    cin >> name;
+    fstream file(name);
+
+    vector<string> instructions;
+    string line;
+
+    if(file)
+    {
+        while(getline(file, line)) 
+        {
+            instructions.push_back(line); 
+        }
+        file.close();
+    }
+    else
+    {
+        cout << "File not found!" << endl;
+    }
+
+    return instructions;
+}
 
 int main()
 {
