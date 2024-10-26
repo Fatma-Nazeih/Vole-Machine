@@ -3,7 +3,23 @@ using namespace std;
 
 class Instructions
 {
+private:
+int program_counter = 0;
+public:
+    void B_jump(string inst) {
+        char R = inst[1];
+        string address = inst.substr(2, 2);
 
+        int r = stoi(string(1, R), nullptr, 16);
+        int mem_address = stoi(address, nullptr, 16);
+
+        if (registers[r] == registers[0]) {
+            program_counter = mem_address;
+            cout << "Jumped to address: " << hex << mem_address << endl;
+        } else {
+            cout << "No jump" << endl;
+        }
+    }
 };
 
 class memory
