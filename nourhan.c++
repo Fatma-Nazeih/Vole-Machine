@@ -1,94 +1,180 @@
-#include "bits/stdc++.h"
+#include <iostream>
+#include <bits/stdc++.h>
 using namespace std;
 
-class instructions {
-private:
-    char opcode;
-    string  R;
-    string R2;
-    string add_mem;
-    string loaded_imm_value;
-    int registers[16] = {0};
-    int memory[256] = {0};
+
+class Memory {
+    string memory[256];
+public:
+    Memory() {
+        for (int i = 0; i < 256; i++){
+            memory[i] = "00";
+        }
+    }
+    string get_memory(int address) {
+        if (address >= 0 && address < 256) {
+            return memory[address];
+        }
+        return "00";
+    }
+    void set_memory(int address, const string &value) {
+        if (address >= 0 && address < 256) {
+            memory[address] = value;
+        }
+    }
+    void display() const {
+        for (int i = 0; i < 256; ++i){
+            cout << i  << ":" << memory[i] << endl;
+        }
+    }
+};
+
+class Register {
+    string registers[16];
+public:
+    Register() {
+        for (int i = 0; i < 16; i++){
+            registers[i] = "00";
+        }
+    }
+    string get_register(int address) {
+        if (address >= 0 && address < 16){
+            return registers[address];
+        }
+        return "00";
+    }
+    void set_register(int address, const string &value) {
+        if (address >= 0 && address < 16){
+            registers[address] = value;
+        }
+    }
+    void display() const {
+        for (int i = 0; i < 16; ++i){
+            cout << i  << ":" << registers[i] << endl;
+        }
+    }
+};
+
+class CPU {
+    Memory &memory;
+    Register &regist;
+    int pc;
+    vector<string> instructions;
 
 public:
-    void parse(string inst){
-        if (inst.length() < 4) {
-            cout << "error: instruction is too short: " << inst << endl;
-            return;
-        }
-
-        inst = inst.substr(0, 4);
-        
-        for (char c : inst) {
-            if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))) {
-                cout << "error: invalid character in instruction: " << inst << endl;
-                return;
-            }
-        }
-
-        R = inst[1];
-        add_mem = inst.substr(inst.length() - 2);
-        loaded_imm_value = inst.substr(inst.length() - 2);
-        if (inst[0] == '1'){
-            load(R , add_mem);
-
-        }
-        if (inst[0] == '2'){
-            load_imm ( R , loaded_imm_value);
-        }
-        if (inst[0] == '3'){
-            store(R,add_mem);
-        }
-        if (inst[0] == '4'){
-            R2 = inst[3];
-            move(R , R2);
-        }
-        if (inst[0] == '5'){
-            opcode = 5;
-        }
-        if (inst[0] == '6'){
-            opcode = 6;
-        }
-        if (inst[0] == 'A'){
-            opcode = 'A';
-        }
-        if (inst[0] == 'B'){
-            opcode = 'B';
-        }
-        else{
-            cout << "Invalid opcode: " << inst[0] << endl;
-            return;
-        }
-
+    CPU(Memory &mem, Register &reg) : memory(mem), regist(reg) {
+        pc = 0;
     }
-    void load (string R , string add_mem){
-        int r = stoi(R, 0, 16);
-        int mem = stoi(add_mem, 0, 16);
-        registers[r] = memory[mem];
-    };
-    void load_imm (string R , string loaded_imm_value){
-        int r = stoi(R, 0, 16);
-        int value = stoi(loaded_imm_value, 0, 16);
-        registers[r] = value;
 
-    };void store (string R , string add_mem){
-        int r = stoi(R, 0, 16);
-        int mem = stoi(add_mem, 0, 16);
-        memory[mem] = registers[r];
-    };void move (string R , string R2){
-        int r = stoi(R, 0, 16);
-        int r2 = stoi(R2, 0, 16);
-        registers[r2] = registers[r];
 
-    };void add_1 (char opcode , char R , char x , char y){
+    void load_instructions(const vector<string> &program) {
+        instructions = program;
+        pc = 0;
+    }
 
-    };void add_2 (char opcode , char R , char x , char y){
+    string fetch() {
+        if (pc < instructions.size()){
+            return instructions[pc++];
+        }
+        return "";
+    }
 
-    };void B_jump (char opcode , char R , char x , char y){
+    void decode(const string &instruction, string &opcode, string &operand1, string &operand2) {
+        opcode = instruction[0];
+        operand1 = instruction[1];
+        operand2 = instruction.substr(2);
+    }
 
-    };void C_Halt (char opcode , char R , char x , char y){
+    void execute(const string &opcode, const string &operand1, const string &operand2) {
+        if (opcode == "1"){
+            int R = stoi(operand1);
+            int XY = stoi(operand2);
+            regist.set_register(R, memory.get_memory(XY));
+        }
+        if (opcode == "2"){
+            int R = stoi(operand1);
+            regist.set_register(R, operand2);
+        }
+        if (opcode == "3"){
+            int R = stoi(operand1);
+            int XY = stoi(operand2);
+            memory.set_memory(XY, regist.get_register(R));
+        }
+        if (opcode == "4"){
+            string R1 = operand2.substr(0,1);
+            string S1 = operand2.substr(1,1);
+            int R = stoi(R1);
+            int S = stoi(S1);
+            regist.set_register(S, regist.get_register(R));
+        }
+    }
 
-    };
+    void run() {
+        string opcode, operand1, operand2;
+        while (true) {
+
+            string instruction = fetch();
+            if (instruction.empty()) {
+                break;
+            }
+            decode(instruction, opcode, operand1, operand2);
+
+            if (opcode == "C"){
+                break;
+            }
+            execute(opcode, operand1, operand2);
+        }
+    }
 };
+
+int main() {
+    Memory memory;
+    Register reg;
+    CPU cpu(memory, reg);
+
+    while (true) {
+        cout << "welcome to our vole machine" << endl;
+        cout << "1. Load a program and run " << endl;
+        cout << "2. Exit " << endl;
+        cout << "option : ";
+        char choice;
+        cin >> choice;
+
+        if (choice == '1') {
+            cout << "Enter the program file name (filename.txt): ";
+            string filename;
+            cin >> filename;
+
+            ifstream inputFile(filename);
+            if (!inputFile) {
+                cout << "Unable to open program file." << endl;
+                continue;
+            }
+
+            vector<string> program;
+            string instruction;
+            while (inputFile >> instruction) {
+                program.push_back(instruction);
+            }
+            inputFile.close();
+            cpu.load_instructions(program);
+
+            cout << "Program loaded successfully." << endl;
+            cpu.run();
+
+            cout << "Register values:" << endl;
+            reg.display();
+            cout << "Memory values:" << endl;
+            memory.display();
+
+            
+        } else if (choice == '2') {
+            cout << "Exiting the program." << endl;
+            return 0;
+        } else {
+            cout << "Invalid choice. Please enter a valid option." << endl;
+        }
+    }
+}
+
 
